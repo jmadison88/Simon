@@ -18,47 +18,86 @@ struct ContentView: View {
     @State var highScore = 0
     @State private var timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
     @State var audioPlayer: AVAudioPlayer!
-    var colorDisplay = [TapColor(color: .green), [TapColor(color: .red), [TapColor(color: .yellow), [TapColor(color: .blue)  ]
+    var colorDisplay = [TapColor(color: .green), TapColor(color: .red), TapColor(color: .yellow), TapColor(color: .blue)]
     var body: some View {
         VStack {
-            Text("Simon")
+            Text("simon")
                 .font(.custom("Impact", size: 72))
-            HStack {
-                colorDisplay[0]
-                    .onTapGesture {
-                        flashColorDisplay(index: 0)
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(100), spacing:
+                                                            
+                                                            15), count: 2), spacing: 15, content: {
+                
+                ForEach(0..<4) { i in
+                    colorDisplay[i]
+                        .opacity(flash[i] ? 1 : 0.4)
+                        .onTapGesture {
+                            playSound(sound: String(i))
+                            if playerTurn {
+                                flashColor(index: i)
+                                if sequence[index] != i {
+                                    message = "You lose"
+                                    gameOver = true
+                                    playSound(sound: "lose")
+                                    
+                                }
+                                else {
+                                    index += 1
+                                    
+                                    if index > highScore {
+                                        highScore = index
+                                        
+                                        // playSound(sound: "highscore")
+                                        
+                                    }
+                                    if index == sequence.count {
+                                        index = 0
+                                        
+                                        playerTurn = false
+                                        
+                                        addToSequence()
+                                    }
+                                }
+                            }
+                        }
+                }
+            })
+            Text(message)
+                .font(.custom("Impact", size: 36))
+                .padding()
+                .onTapGesture {
+                    if message == "Start" {
+                        playSound(sound: "start")
+                        gameOver = false
+                        message = " "
+                        
                     }
-                    .opacity(flash[0] ? 1 : 0.4)
-                colorDisplay[1]
-                    .onTapGesture {
-                        flashColorDisplay(index: 1)
+                    else if message == "You lose" {
+                        restart()
                     }
-                    .opacity(flash[1] ? 1 : 0.4)
-            }
-            HStack {
-                colorDisplay[2]
-                    .onTapGesture {
-                        flashColorDisplay(index: 2)
-                    }
-                    .opacity(flash[2] ? 1 : 0.4)
-                colorDisplay[3]
-                    .onTapGesture {
-                        flashColorDisplay(index: 3)
-                    }
-                    .opacity(flash[3] ? 1 : 0.4)
-            }
+                }
+            Text("High Score: \(highScore)")
         }
-        .padding()
         .preferredColorScheme(.dark)
-        .onReceive(timer) { _ in
-            if index < sequence.count {
-                flashColorDisplay(index: sequence[index])
-                index += 1
+        .onAppear(perform: {
+            restart()
+        })
+        .onReceive(timer, perform: { _ in
+            if !gameOver && !playerTurn {
+                if index < sequence.count {
+                    message = " "
+                    
+                    flashColor(index: sequence[index])
+                    playSound(sound: String(sequence[index]))
+                    index += 1
+                }
+                else {
+                    playerTurn.toggle()
+                    message = "Your turn"
+                    index = 0
+                    
+                }
             }
-            else {
-               index = 0
-            }
-        }
+        })
     }
     
     func flashColorDisplay(index: Int) {
